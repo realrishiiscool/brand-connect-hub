@@ -16,7 +16,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await register({ ...form, role });
-    navigate(`/${role}/dashboard`);
+    navigate(role === "kol" ? "/kol/profile-completion" : "/company/profile-setup");
   };
 
   return (

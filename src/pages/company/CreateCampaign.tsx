@@ -1,14 +1,53 @@
 import { useState } from "react";
 import { Upload, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCollaboration } from "@/contexts/CollaborationContext";
+import { useNavigate } from "react-router-dom";
 
 const CreateCampaign = () => {
+  const { user } = useAuth();
+  const { createCampaign } = useCollaboration();
+  const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", deliverables: "", budgetMin: "", budgetMax: "",
     deadline: "", audience: "", platform: "", country: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const update = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!form.title.trim()) errs.title = "Title is required";
+    if (!form.description.trim()) errs.description = "Description is required";
+    if (!form.deliverables.trim()) errs.deliverables = "Deliverables are required";
+    if (form.budgetMin && form.budgetMax && Number(form.budgetMin) > Number(form.budgetMax)) {
+      errs.budgetMax = "Max budget must be greater than min";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate() || !user) return;
+    createCampaign({
+      companyId: user.id,
+      companyName: user.name,
+      title: form.title,
+      description: form.description,
+      deliverables: form.deliverables,
+      budgetMin: Number(form.budgetMin) || 0,
+      budgetMax: Number(form.budgetMax) || 0,
+      deadline: form.deadline,
+      platform: form.platform,
+      country: form.country,
+      audience: form.audience,
+      status: "active",
+    });
+    setSubmitted(true);
+  };
 
   if (submitted) {
     return (
@@ -18,9 +57,14 @@ const CreateCampaign = () => {
         </div>
         <h1 className="mb-2 font-display text-2xl font-bold">Campaign Published!</h1>
         <p className="mb-6 text-muted-foreground">Your campaign is now live and visible to KOLs.</p>
-        <button onClick={() => { setSubmitted(false); setForm({ title: "", description: "", deliverables: "", budgetMin: "", budgetMax: "", deadline: "", audience: "", platform: "", country: "" }); }} className="gradient-primary rounded-lg px-6 py-2.5 font-semibold text-primary-foreground">
-          Create Another
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => navigate("/company/campaigns")} className="gradient-primary rounded-lg px-6 py-2.5 font-semibold text-primary-foreground">
+            View Campaigns
+          </button>
+          <button onClick={() => { setSubmitted(false); setForm({ title: "", description: "", deliverables: "", budgetMin: "", budgetMax: "", deadline: "", audience: "", platform: "", country: "" }); }} className="rounded-lg border border-border px-6 py-2.5 font-semibold hover:bg-secondary">
+            Create Another
+          </button>
+        </div>
       </div>
     );
   }
@@ -28,19 +72,22 @@ const CreateCampaign = () => {
   return (
     <div className="animate-fade-in space-y-6">
       <h1 className="font-display text-2xl font-bold">Create Campaign</h1>
-      <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Campaign Title *</label>
-            <input type="text" value={form.title} onChange={(e) => update("title", e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+            <input type="text" value={form.title} onChange={(e) => update("title", e.target.value)} className={`h-10 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${errors.title ? "border-destructive" : "border-input"}`} />
+            {errors.title && <p className="mt-1 text-xs text-destructive">{errors.title}</p>}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Description *</label>
-            <textarea value={form.description} onChange={(e) => update("description", e.target.value)} className="min-h-[100px] w-full rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring" required />
+            <textarea value={form.description} onChange={(e) => update("description", e.target.value)} className={`min-h-[100px] w-full rounded-lg border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${errors.description ? "border-destructive" : "border-input"}`} />
+            {errors.description && <p className="mt-1 text-xs text-destructive">{errors.description}</p>}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Deliverables *</label>
-            <textarea value={form.deliverables} onChange={(e) => update("deliverables", e.target.value)} className="min-h-[80px] w-full rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="e.g., 3 Instagram posts, 2 Stories, 1 Reel" required />
+            <textarea value={form.deliverables} onChange={(e) => update("deliverables", e.target.value)} className={`min-h-[80px] w-full rounded-lg border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${errors.deliverables ? "border-destructive" : "border-input"}`} placeholder="e.g., 3 Instagram posts, 2 Stories, 1 Reel" />
+            {errors.deliverables && <p className="mt-1 text-xs text-destructive">{errors.deliverables}</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -49,7 +96,8 @@ const CreateCampaign = () => {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Budget Max ($)</label>
-              <input type="number" value={form.budgetMax} onChange={(e) => update("budgetMax", e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input type="number" value={form.budgetMax} onChange={(e) => update("budgetMax", e.target.value)} className={`h-10 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${errors.budgetMax ? "border-destructive" : "border-input"}`} />
+              {errors.budgetMax && <p className="mt-1 text-xs text-destructive">{errors.budgetMax}</p>}
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -60,11 +108,7 @@ const CreateCampaign = () => {
             <div>
               <label className="mb-1 block text-sm font-medium">Platform</label>
               <select value={form.platform} onChange={(e) => update("platform", e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                <option value="">Any</option>
-                <option>Instagram</option>
-                <option>YouTube</option>
-                <option>TikTok</option>
-                <option>X (Twitter)</option>
+                <option value="">Any</option><option>Instagram</option><option>YouTube</option><option>TikTok</option><option>X (Twitter)</option>
               </select>
             </div>
             <div>
@@ -78,7 +122,7 @@ const CreateCampaign = () => {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Attach Files</label>
-            <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-colors">
               <Upload className="mr-2 h-4 w-4" /> Drop files here or click to upload
             </div>
           </div>

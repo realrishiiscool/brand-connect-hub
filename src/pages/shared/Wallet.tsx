@@ -1,51 +1,87 @@
 import { useState } from "react";
 import { DollarSign, ArrowUpRight, ArrowDownRight, CreditCard, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCollaboration } from "@/contexts/CollaborationContext";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 interface WalletProps {
   role: "kol" | "company";
 }
 
-const kolTransactions = [
-  { id: 1, description: "TechBrand - Summer Launch", amount: "+$3,500", date: "Aug 15, 2026", status: "Completed", type: "credit" },
-  { id: 2, description: "Withdrawal to Bank", amount: "-$2,000", date: "Aug 10, 2026", status: "Completed", type: "debit" },
-  { id: 3, description: "FitLife Co. - Product Review", amount: "+$1,800", date: "Aug 5, 2026", status: "Pending", type: "credit" },
-  { id: 4, description: "StyleHaus - Collection Promo", amount: "+$2,000", date: "Jul 28, 2026", status: "Completed", type: "credit" },
-  { id: 5, description: "Withdrawal to PayPal", amount: "-$3,000", date: "Jul 20, 2026", status: "Completed", type: "debit" },
-];
-
-const companyTransactions = [
-  { id: 1, description: "Added Funds", amount: "+$10,000", date: "Aug 15, 2026", status: "Completed", type: "credit" },
-  { id: 2, description: "Escrow - Summer Launch", amount: "-$3,500", date: "Aug 12, 2026", status: "In Escrow", type: "debit" },
-  { id: 3, description: "Released - Product Review", amount: "-$1,800", date: "Aug 5, 2026", status: "Released", type: "debit" },
-  { id: 4, description: "Added Funds", amount: "+$5,000", date: "Jul 25, 2026", status: "Completed", type: "credit" },
-];
-
 const Wallet = ({ role }: WalletProps) => {
+  const { user } = useAuth();
+  const { getWallet, addFunds, withdrawFunds } = useCollaboration();
   const [filter, setFilter] = useState("all");
+  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [fundsAmount, setFundsAmount] = useState("");
   const isKol = role === "kol";
-  const transactions = isKol ? kolTransactions : companyTransactions;
+
+  const wallet = user ? getWallet(user.id, role) : null;
+
+  const handleAction = () => {
+    if (!user) return;
+    if (isKol) {
+      const amount = Math.min(wallet?.available || 0, 1000);
+      if (amount > 0) withdrawFunds(user.id, amount);
+    } else {
+      setShowAddFunds(true);
+    }
+  };
+
+  const handleAddFunds = () => {
+    if (!user || !fundsAmount) return;
+    addFunds(user.id, parseFloat(fundsAmount));
+    setFundsAmount("");
+    setShowAddFunds(false);
+  };
+
+  if (!wallet) return null;
 
   const stats = isKol
     ? [
-        { label: "Available Balance", value: "$5,300", icon: DollarSign },
-        { label: "Pending Balance", value: "$1,800", icon: ArrowDownRight },
-        { label: "Total Earned", value: "$18,400", icon: ArrowUpRight },
+        { label: "Available Balance", value: `$${wallet.available.toLocaleString()}`, icon: DollarSign },
+        { label: "Pending Balance", value: `$${wallet.pending.toLocaleString()}`, icon: ArrowDownRight },
+        { label: "Total Earned", value: `$${wallet.totalEarned.toLocaleString()}`, icon: ArrowUpRight },
       ]
     : [
-        { label: "Current Balance", value: "$9,700", icon: DollarSign },
-        { label: "Funds in Escrow", value: "$3,500", icon: ArrowDownRight },
-        { label: "Total Added", value: "$25,000", icon: ArrowUpRight },
+        { label: "Current Balance", value: `$${wallet.available.toLocaleString()}`, icon: DollarSign },
+        { label: "Funds in Escrow", value: `$${wallet.escrow.toLocaleString()}`, icon: ArrowDownRight },
+        { label: "Total Added", value: `$${wallet.totalAdded.toLocaleString()}`, icon: ArrowUpRight },
       ];
+
+  const filteredTx = wallet.transactions.filter((t) => filter === "all" || t.type === filter);
 
   return (
     <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">Wallet</h1>
-        <button className="gradient-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-primary-foreground">
+        <button onClick={handleAction} className="gradient-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-primary-foreground">
           {isKol ? <><Download className="h-4 w-4" /> Withdraw</> : <><CreditCard className="h-4 w-4" /> Add Funds</>}
         </button>
       </div>
+
+      {/* Add funds modal */}
+      {showAddFunds && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+          <h3 className="mb-3 font-display text-sm font-semibold">Add Funds</h3>
+          <div className="flex gap-3">
+            <input
+              type="number"
+              value={fundsAmount}
+              onChange={(e) => setFundsAmount(e.target.value)}
+              placeholder="Enter amount"
+              className="h-10 flex-1 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button onClick={handleAddFunds} className="gradient-primary rounded-lg px-6 py-2 text-sm font-semibold text-primary-foreground">
+              Add
+            </button>
+            <button onClick={() => setShowAddFunds(false)} className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-secondary">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((s) => (
@@ -59,7 +95,6 @@ const Wallet = ({ role }: WalletProps) => {
         ))}
       </div>
 
-      {/* Payment Methods */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h3 className="mb-3 font-display text-base font-semibold">Payment Methods</h3>
         <div className="flex flex-wrap gap-3">
@@ -76,7 +111,6 @@ const Wallet = ({ role }: WalletProps) => {
         </div>
       </div>
 
-      {/* Transactions */}
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-display text-base font-semibold">Transaction History</h3>
@@ -86,36 +120,42 @@ const Wallet = ({ role }: WalletProps) => {
             <option value="debit">Debits</option>
           </select>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="pb-3 font-medium">Description</th>
-                <th className="pb-3 font-medium">Amount</th>
-                <th className="pb-3 font-medium">Date</th>
-                <th className="pb-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.filter((t) => filter === "all" || t.type === filter).map((t) => (
-                <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="py-3 font-medium">{t.description}</td>
-                  <td className={cn("py-3 font-medium", t.type === "credit" ? "text-success" : "text-foreground")}>{t.amount}</td>
-                  <td className="py-3 text-muted-foreground">{t.date}</td>
-                  <td className="py-3">
-                    <span className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      t.status === "Completed" ? "bg-success/10 text-success" :
-                      t.status === "In Escrow" ? "bg-warning/10 text-warning" :
-                      t.status === "Released" ? "bg-primary/10 text-primary" :
-                      "bg-muted text-muted-foreground"
-                    )}>{t.status}</span>
-                  </td>
+        {filteredTx.length === 0 ? (
+          <EmptyState title="No transactions" description="Your transaction history will appear here." className="border-0 py-8" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-3 font-medium">Description</th>
+                  <th className="pb-3 font-medium">Amount</th>
+                  <th className="pb-3 font-medium">Date</th>
+                  <th className="pb-3 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredTx.map((t) => (
+                  <tr key={t.id} className="border-b border-border last:border-0">
+                    <td className="py-3 font-medium">{t.description}</td>
+                    <td className={cn("py-3 font-medium", t.amount > 0 ? "text-success" : "text-foreground")}>
+                      {t.amount > 0 ? "+" : ""}${Math.abs(t.amount).toLocaleString()}
+                    </td>
+                    <td className="py-3 text-muted-foreground">{t.date.toLocaleDateString()}</td>
+                    <td className="py-3">
+                      <span className={cn(
+                        "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        t.status === "completed" ? "bg-success/10 text-success" :
+                        t.status === "in_escrow" ? "bg-warning/10 text-warning" :
+                        t.status === "released" ? "bg-primary/10 text-primary" :
+                        "bg-muted text-muted-foreground"
+                      )}>{t.status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
