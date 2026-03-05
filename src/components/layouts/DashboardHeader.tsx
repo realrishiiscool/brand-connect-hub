@@ -1,8 +1,10 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const DashboardHeader = () => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-md">
@@ -20,6 +22,13 @@ const DashboardHeader = () => {
             className="h-9 w-64 rounded-lg border border-input bg-secondary pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        <button
+          onClick={toggleTheme}
+          className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          title="Toggle dark mode"
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
         <button className="relative rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
           <Bell className="h-5 w-5" />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />

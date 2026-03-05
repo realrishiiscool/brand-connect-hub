@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CollaborationProvider } from "@/contexts/CollaborationContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicLayout from "@/components/layouts/PublicLayout";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -47,9 +48,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <CollaborationProvider>
-          <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <CollaborationProvider>
+            <BrowserRouter>
             <Routes>
               {/* Auth pages (no layout) */}
               <Route path="/login" element={<Login />} />
@@ -92,9 +94,10 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </CollaborationProvider>
-      </AuthProvider>
+            </BrowserRouter>
+          </CollaborationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

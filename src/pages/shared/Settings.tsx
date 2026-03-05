@@ -1,6 +1,9 @@
-import { Settings as SettingsIcon, Bell, Shield, Globe } from "lucide-react";
+import { Bell, Shield, Globe, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Settings = () => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="animate-fade-in space-y-6">
       <h1 className="font-display text-2xl font-bold">Settings</h1>
@@ -39,6 +42,25 @@ const Settings = () => {
               <p className="font-medium">Two-Factor Authentication</p>
               <p className="text-xs text-muted-foreground">Add extra security to your account</p>
             </button>
+          </div>
+        </div>
+
+        {/* Appearance */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="mb-4 flex items-center gap-3">
+            {theme === "dark" ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+            <h3 className="font-display text-base font-semibold">Appearance</h3>
+          </div>
+          <div className="space-y-3">
+            <label className="flex items-center justify-between">
+              <span className="text-sm">Dark Mode</span>
+              <button
+                onClick={toggleTheme}
+                className={`relative h-6 w-11 rounded-full transition-colors ${theme === "dark" ? "bg-primary" : "bg-secondary"}`}
+              >
+                <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-primary-foreground shadow transition-all ${theme === "dark" ? "left-[22px]" : "left-0.5"}`} />
+              </button>
+            </label>
           </div>
         </div>
 
